@@ -1,0 +1,15 @@
+{
+  "domain": "dungeon_season",
+  "name": "Dungeon Season",
+  "after_dependencies": ["calendar"],
+  "codeowners": ["@goforth-device"],
+  "config_flow": true,
+  "dependencies": ["frontend"],
+  "documentation": "https://github.com/goforth-device/ha-dungeon-season",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/goforth-device/ha-dungeon-season/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.1.0"
+}
