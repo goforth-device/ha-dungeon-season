@@ -12,6 +12,9 @@ Dashboards set their theme to `Dungeon Crawl Season`. Every hour the integration
 | Halloween | October 31 |
 | New Year, Family Day, Victoria Day, Canada Day, BC Day, Labour Day, Truth and Reconciliation, Remembrance Day | On the day |
 | Birthday | On the day. A birthday wins over any season, and the look changes every hour |
+| Winter, Spring, Summer, Fall | Every other day, from December 21, March 20, June 21 and September 22 |
+
+Each winter, spring, summer and fall gets its own name, such as Frostbite Season or Gourd Season. There are 12 names for each, used in turn, so a name doesn't come back for 12 years.
 
 ## Birthdays
 

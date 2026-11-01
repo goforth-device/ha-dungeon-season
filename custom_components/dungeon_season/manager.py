@@ -27,14 +27,15 @@ from .const import (
     BIRTHDAY_THEME,
     CONF_CALENDAR,
     DEFAULT_CALENDAR,
+    FALLBACK_THEME,
     THEME_FILE,
 )
 from .seasons import (
-    EVERYDAY,
     SEASONS,
     Person,
     Season,
     birthday_look,
+    named,
     next_change,
     person_from_title,
     season_for,
@@ -50,19 +51,27 @@ def _write_theme(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _with_banner(theme: dict[str, Any], number: int) -> dict[str, Any]:
+    """Point a theme at the banner with this season's name on it."""
+    banner = theme.get("dc-banner")
+    if not banner or not number:
+        return theme
+    return {**theme, "dc-banner": banner.replace(".png", f"-{number:02}.png")}
+
+
 class SeasonManager:
     """Keep the season, the birthdays and the theme up to date."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Start on the everyday look until the first refresh."""
+        """Start on today's season until the first refresh."""
         self.hass = hass
         self.calendar: str = {**entry.data, **entry.options}.get(
             CONF_CALENDAR, DEFAULT_CALENDAR
         )
         self.preview = AUTO
-        self.season: Season = EVERYDAY
+        self.season: Season = season_for(dt_util.now().date())
         self.people: list[Person] = []
-        self.theme = EVERYDAY.theme
+        self.theme = self.season.theme
         self.next_date: date | None = None
         self.next_season: Season | None = None
         self._today: date | None = None
@@ -124,7 +133,7 @@ class SeasonManager:
         if self.preview == BIRTHDAY_PREVIEW:
             self.people = [Person("Preview", 42)]
         elif self.preview != AUTO:
-            self.season = SEASONS_BY_KEY[self.preview]
+            self.season = named(SEASONS_BY_KEY[self.preview], today.year)
             self.people = []
         self.next_date, self.next_season = next_change(today)
 
@@ -168,7 +177,11 @@ class SeasonManager:
     async def _async_apply_theme(self) -> None:
         """Copy the chosen look into the theme the dashboards name."""
         themes = self.hass.data.get(DATA_THEMES, {})
-        source = themes.get(self.theme) or themes.get(EVERYDAY.theme)
+        source = themes.get(self.theme)
+        if source is not None:
+            source = _with_banner(source, 0 if self.people else self.season.banner)
+        else:
+            source = themes.get(FALLBACK_THEME)
         if source is None:
             _LOGGER.warning("Theme %s is not installed", self.theme)
             return

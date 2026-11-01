@@ -19,11 +19,15 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from custom_components.dungeon_season.const import ALIAS_THEME, DOMAIN
+from custom_components.dungeon_season.seasons import FALL, named
 
 THEMES = """
 Dungeon Crawl:
-  primary-color: "#everyday"
+  primary-color: "#fallback"
+Dungeon Crawl Fall:
+  primary-color: "#fall"
   lovelace-background: 'center / cover url("https://example.com/wall.jpg")'
+  dc-banner: 'url("https://example.com/banner-fall.png")'
 Dungeon Crawl Halloween:
   primary-color: "#halloween"
 Dungeon Crawl Christmas:
@@ -110,15 +114,28 @@ async def test_halloween_is_copied_into_the_alias(
     assert len(reloads) == 1
 
 
-async def test_an_ordinary_day_uses_the_everyday_look(
+async def test_an_ordinary_day_uses_the_real_season_and_its_named_banner(
     hass: HomeAssistant, setup, freezer: FrozenDateTimeFactory
 ) -> None:
     freezer.move_to(at(2026, 11, 3, 15))
     await setup()
-    assert hass.states.get("sensor.dungeon_season").state == "everyday"
+    season = named(FALL, 2026)
+    state = hass.states.get("sensor.dungeon_season")
+    assert state.state == "fall"
+    assert state.attributes["title"] == season.title
     theme = hass.data[DATA_THEMES][ALIAS_THEME]
-    assert theme["primary-color"] == "#everyday"
+    assert theme["primary-color"] == "#fall"
     assert theme["lovelace-background"] == 'center / cover url("https://example.com/wall.jpg")'
+    assert theme["dc-banner"] == f'url("https://example.com/banner-fall-{season.banner:02}.png")'
+
+
+async def test_a_season_with_no_installed_theme_falls_back(
+    hass: HomeAssistant, setup, freezer: FrozenDateTimeFactory
+) -> None:
+    freezer.move_to(at(2026, 5, 1, 15))
+    await setup()
+    assert hass.states.get("sensor.dungeon_season").state == "spring"
+    assert hass.data[DATA_THEMES][ALIAS_THEME]["primary-color"] == "#fallback"
 
 
 async def test_midnight_changes_the_season_without_a_restart(
@@ -126,7 +143,7 @@ async def test_midnight_changes_the_season_without_a_restart(
 ) -> None:
     freezer.move_to(at(2026, 11, 30, 23, 59))
     await setup()
-    assert hass.data[DATA_THEMES][ALIAS_THEME]["primary-color"] == "#everyday"
+    assert hass.data[DATA_THEMES][ALIAS_THEME]["primary-color"] == "#fall"
     freezer.move_to(at(2026, 12, 1, 0, 0, 5))
     async_fire_time_changed(hass, dt_util.now())
     await hass.async_block_till_done()
@@ -214,7 +231,23 @@ async def test_preview_shows_a_look_and_clears_at_midnight(
     async_fire_time_changed(hass, dt_util.now())
     await hass.async_block_till_done()
     assert hass.states.get("select.dungeon_season_preview").state == "auto"
-    assert hass.states.get("sensor.dungeon_season").state == "everyday"
+    assert hass.states.get("sensor.dungeon_season").state == "fall"
+
+
+async def test_preview_of_a_season_shows_its_name(
+    hass: HomeAssistant, setup, freezer: FrozenDateTimeFactory
+) -> None:
+    freezer.move_to(at(2026, 12, 3, 15))
+    await setup()
+    await hass.services.async_call(
+        "select",
+        "select_option",
+        {"entity_id": "select.dungeon_season_preview", "option": "fall"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.dungeon_season").attributes["title"] == named(FALL, 2026).title
+    assert "banner-fall-" in hass.data[DATA_THEMES][ALIAS_THEME]["dc-banner"]
 
 
 async def test_birthday_preview_shows_a_made_up_person(
@@ -240,4 +273,4 @@ async def test_a_missing_calendar_is_not_a_failure(
     hass.services.async_remove("calendar", "get_events")
     await setup()
     assert hass.states.get("sensor.dungeon_birthday").state == "none"
-    assert hass.states.get("sensor.dungeon_season").state == "everyday"
+    assert hass.states.get("sensor.dungeon_season").state == "fall"

@@ -5,6 +5,7 @@ from __future__ import annotations
 DOMAIN = "dungeon_season"
 
 ALIAS_THEME = "Dungeon Crawl Season"
+FALLBACK_THEME = "Dungeon Crawl"
 BIRTHDAY_THEME = "Dungeon Crawl Birthday {:02}"
 THEME_FILE = ("themes", "dungeon_season", "season.yaml")
 

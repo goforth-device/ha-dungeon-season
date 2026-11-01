@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 import re
 
@@ -19,9 +19,13 @@ class Season:
     title: str
     theme: str
     solemn: bool = False
+    banner: int = 0
 
 
-EVERYDAY = Season("everyday", "Season Goforth", "Dungeon Crawl")
+WINTER = Season("winter", "Winter", "Dungeon Crawl Winter")
+SPRING = Season("spring", "Spring", "Dungeon Crawl Spring")
+SUMMER = Season("summer", "Summer", "Dungeon Crawl Summer")
+FALL = Season("fall", "Fall", "Dungeon Crawl Fall")
 NEW_YEAR = Season("new_year", "Happy New Year", "Dungeon Crawl New Year")
 FAMILY_DAY = Season("family_day", "Family Day", "Dungeon Crawl Family Day")
 EASTER = Season("easter", "Easter Season", "Dungeon Crawl Easter")
@@ -43,7 +47,10 @@ REMEMBRANCE_DAY = Season(
 CHRISTMAS = Season("christmas", "Christmas Season", "Dungeon Crawl Christmas")
 
 SEASONS = (
-    EVERYDAY,
+    WINTER,
+    SPRING,
+    SUMMER,
+    FALL,
     NEW_YEAR,
     FAMILY_DAY,
     EASTER,
@@ -57,6 +64,70 @@ SEASONS = (
     REMEMBRANCE_DAY,
     CHRISTMAS,
 )
+
+# The day each season starts, in the order they fall in a year.
+SEASON_STARTS = ((3, 20, SPRING), (6, 21, SUMMER), (9, 22, FALL), (12, 21, WINTER))
+
+# Each name and the line under it on the banner. A name comes round again only
+# after the whole list has been used, so 12 names means 12 years between repeats.
+NAMES = {
+    "winter": (
+        ("Frostbite", "Keep your toes"),
+        ("Black Ice", "Watch your step"),
+        ("Long Night", "Bring a torch"),
+        ("Snow Day", "School is cancelled"),
+        ("Deep Freeze", "Floor closed for ice"),
+        ("Cold Snap", "Pants now advised"),
+        ("Storm Watch", "Waves bigger than the boss"),
+        ("Hot Cocoa", "Health potion restored"),
+        ("Ice Cavern", "Slippery when crawled"),
+        ("Wool Sock", "+5 to warmth"),
+        ("Whiteout", "Map not available"),
+        ("Toque", "+2 ear protection"),
+    ),
+    "spring": (
+        ("Mud", "Boots off at the door"),
+        ("Pollen", "Sneeze to attack"),
+        ("Thaw", "Floor now squishy"),
+        ("Blossom", "Petal storm incoming"),
+        ("Rain Boot", "Puddle damage +2"),
+        ("Seedling", "Level one plant"),
+        ("Dandelion", "The weeds will rise"),
+        ("Budbreak", "New growth unlocked"),
+        ("Moss", "The roof remembers"),
+        ("First Mow", "Lawn boss awakens"),
+        ("Drizzle", "Chance of loot"),
+        ("Slug", "Slow but deadly"),
+    ),
+    "summer": (
+        ("Sunburn", "Reapply every floor"),
+        ("Heat Wave", "Fire floor unlocked"),
+        ("Barbecue", "Grill boss battle"),
+        ("Long Day", "Solar loot bonus"),
+        ("Sprinkler", "Water elemental spotted"),
+        ("Popsicle", "Cold damage +3"),
+        ("Beach", "Sand in every slot"),
+        ("Mosquito", "Swarm incoming"),
+        ("Tent", "Save point at the lake"),
+        ("Flip Flop", "Toe defence -1"),
+        ("Lawn Chair", "Rest at camp"),
+        ("Sunbeam", "Cat buff active"),
+    ),
+    "fall": (
+        ("Leaf Pile", "Hidden cat trap"),
+        ("Gourd", "Gourd loot drop"),
+        ("Sweater", "+3 cozy"),
+        ("Windstorm", "Hold on to your roof"),
+        ("Harvest", "Full pantry bonus"),
+        ("Rain Tax", "Pay at the gutter"),
+        ("Fog", "Visibility one tile"),
+        ("Acorn", "Squirrel raid event"),
+        ("Gutter", "Clean or be cleaned"),
+        ("Mushroom", "Forage at own risk"),
+        ("Spice", "Latte buff active"),
+        ("Early Dark", "Lights on at five"),
+    ),
+}
 
 
 def easter_sunday(year: int) -> date:
@@ -107,12 +178,34 @@ def windows(year: int) -> list[tuple[date, date, Season]]:
     return sorted(days, key=lambda window: window[0])
 
 
+def named(season: Season, year: int) -> Season:
+    """Give a real season this year's name. Holidays keep the name they have."""
+    names = NAMES.get(season.key)
+    if names is None:
+        return season
+    number = year % len(names)
+    return replace(season, title=f"{names[number][0]} Season", banner=number + 1)
+
+
+def real_season(day: date) -> Season:
+    """Return the winter, spring, summer or fall a date is in.
+
+    A winter counts as the year it started in, so one winter keeps one name
+    across New Year.
+    """
+    year, current = day.year - 1, WINTER
+    for month, first, season in SEASON_STARTS:
+        if (day.month, day.day) >= (month, first):
+            year, current = day.year, season
+    return named(current, year)
+
+
 def season_for(day: date) -> Season:
-    """Return the season a date falls in."""
+    """Return the holiday a date falls in, or else the real season."""
     for first, last, season in windows(day.year):
         if first <= day <= last:
             return season
-    return EVERYDAY
+    return real_season(day)
 
 
 def next_change(day: date) -> tuple[date, Season]:
