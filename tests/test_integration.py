@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from pathlib import Path
+import re
 from zoneinfo import ZoneInfo
 
 from freezegun.api import FrozenDateTimeFactory
@@ -131,6 +132,16 @@ def test_the_pictures_ship_with_the_integration() -> None:
     images = Path(__file__).parent.parent / "custom_components" / "dungeon_season" / "images"
     for name in ["banner.png", "cat.png", "chest.png", "halloween-wall.jpg", "witch-cat.png", "cat-mood-air.gif", "cat-mood-weather-storm.gif"]:
         assert (images / name).is_file(), name
+
+
+def test_the_fonts_ship_with_the_integration_and_need_no_internet() -> None:
+    fonts = Path(__file__).parent.parent / "custom_components" / "dungeon_season" / "fonts"
+    css = (fonts / "fonts.css").read_text(encoding="utf-8")
+    assert "font-family: 'Bungee'" in css and "font-family: 'Share Tech Mono'" in css
+    assert "http" not in css.split("*/", 1)[1]
+    for name in re.findall(r"url\(([^)]+)\)", css):
+        assert (fonts / name).is_file(), name
+    assert (fonts / "OFL-Bungee.txt").is_file() and (fonts / "OFL-ShareTechMono.txt").is_file()
 
 
 async def test_an_ordinary_day_uses_the_real_season_and_its_named_banner(

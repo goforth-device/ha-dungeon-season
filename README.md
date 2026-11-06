@@ -20,6 +20,8 @@ Each winter, spring, summer and fall gets its own name, such as Frostbite Season
 
 The theme's pictures ship inside this integration, in `custom_components/dungeon_season/images`, and Home Assistant serves them at `/dungeon_season/images/<name>`. When the integration copies a look, it points every picture link at that path instead of GitHub, so the dashboards show the art with no internet connection. Cards can use the same path, such as `/dungeon_season/images/cat-mood-calm.gif`. New art reaches the dashboards with a new release of this integration.
 
+The theme's two fonts, Bungee and Share Tech Mono, ship here too, under the SIL Open Font License (see the `OFL-*.txt` files in `fonts`). Add `/dungeon_season/fonts/fonts.css` as a stylesheet dashboard resource in place of the Google Fonts link.
+
 ## Birthdays
 
 Birthdays live in a Home Assistant calendar, never in this repository. Add a [Local Calendar](https://www.home-assistant.io/integrations/local_calendar/) called Birthdays, then add one all-day event for each person that repeats yearly, titled with their name and birth year, such as `Sam 1990`. Leave the year off to show the name with no age.

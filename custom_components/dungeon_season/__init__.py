@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, IMAGES_URL
+from .const import DOMAIN, FONTS_URL, IMAGES_URL
 from .manager import SeasonManager
 
 PLATFORMS = [Platform.SELECT, Platform.SENSOR]
@@ -22,11 +22,15 @@ type DungeonSeasonConfigEntry = ConfigEntry[SeasonManager]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Serve the theme's pictures from Home Assistant, once per start."""
+    """Serve the theme's pictures and fonts from Home Assistant, once per start."""
     if hass.http is not None:
         # No cache headers: a picture redrawn under the same name shows up on the next load.
+        here = Path(__file__).parent
         await hass.http.async_register_static_paths(
-            [StaticPathConfig(IMAGES_URL, str(Path(__file__).parent / "images"), False)]
+            [
+                StaticPathConfig(IMAGES_URL, str(here / "images"), False),
+                StaticPathConfig(FONTS_URL, str(here / "fonts"), False),
+            ]
         )
     return True
 
