@@ -1,7 +1,7 @@
 {
   "domain": "dungeon_season",
   "name": "Dungeon Season",
-  "after_dependencies": ["calendar"],
+  "after_dependencies": ["calendar", "http"],
   "codeowners": ["@goforth-device"],
   "config_flow": true,
   "dependencies": ["frontend"],
@@ -11,5 +11,5 @@
   "issue_tracker": "https://github.com/goforth-device/ha-dungeon-season/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "0.2.0"
+  "version": "0.3.0"
 }

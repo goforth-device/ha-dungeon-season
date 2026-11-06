@@ -28,6 +28,8 @@ from .const import (
     CONF_CALENDAR,
     DEFAULT_CALENDAR,
     FALLBACK_THEME,
+    IMAGES_URL,
+    REMOTE_IMAGES,
     THEME_FILE,
 )
 from .seasons import (
@@ -57,6 +59,14 @@ def _with_banner(theme: dict[str, Any], number: int) -> dict[str, Any]:
     if not banner or not number:
         return theme
     return {**theme, "dc-banner": banner.replace(".png", f"-{number:02}.png")}
+
+
+def _local(theme: dict[str, Any]) -> dict[str, Any]:
+    """Point the theme's pictures at the copies this integration serves."""
+    return {
+        key: value.replace(REMOTE_IMAGES, f"{IMAGES_URL}/") if isinstance(value, str) else value
+        for key, value in theme.items()
+    }
 
 
 class SeasonManager:
@@ -185,6 +195,7 @@ class SeasonManager:
         if source is None:
             _LOGGER.warning("Theme %s is not installed", self.theme)
             return
+        source = _local(source)
         if themes.get(ALIAS_THEME) == source:
             return
         path = Path(self.hass.config.path(*THEME_FILE))

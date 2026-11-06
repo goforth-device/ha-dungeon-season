@@ -30,6 +30,8 @@ Dungeon Crawl Fall:
   dc-banner: 'url("https://example.com/banner-fall.png")'
 Dungeon Crawl Halloween:
   primary-color: "#halloween"
+  lovelace-background: 'center / cover url("https://raw.githubusercontent.com/goforth-device/ha-dungeon-crawl-theme/main/images/halloween-wall.jpg")'
+  dc-mascot: 'url("https://raw.githubusercontent.com/goforth-device/ha-dungeon-crawl-theme/main/images/witch-cat.png")'
 Dungeon Crawl Christmas:
   primary-color: "#christmas"
 """
@@ -112,6 +114,23 @@ async def test_halloween_is_copied_into_the_alias(
     assert hass.data[DATA_THEMES][ALIAS_THEME]["primary-color"] == "#halloween"
     assert hass.states.get("sensor.dungeon_birthday").state == "none"
     assert len(reloads) == 1
+
+
+async def test_pictures_come_from_home_assistant_not_github(
+    hass: HomeAssistant, setup, freezer: FrozenDateTimeFactory
+) -> None:
+    freezer.move_to(at(2026, 10, 31, 15))
+    await setup()
+    theme = hass.data[DATA_THEMES][ALIAS_THEME]
+    assert theme["lovelace-background"] == 'center / cover url("/dungeon_season/images/halloween-wall.jpg")'
+    assert theme["dc-mascot"] == 'url("/dungeon_season/images/witch-cat.png")'
+    assert not any("githubusercontent" in str(v) for v in theme.values())
+
+
+def test_the_pictures_ship_with_the_integration() -> None:
+    images = Path(__file__).parent.parent / "custom_components" / "dungeon_season" / "images"
+    for name in ["banner.png", "cat.png", "chest.png", "halloween-wall.jpg", "witch-cat.png", "cat-mood-air.gif", "cat-mood-weather-storm.gif"]:
+        assert (images / name).is_file(), name
 
 
 async def test_an_ordinary_day_uses_the_real_season_and_its_named_banner(
