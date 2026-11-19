@@ -18,7 +18,11 @@ REMOTE_IMAGES = "https://raw.githubusercontent.com/goforth-device/ha-dungeon-cra
 
 CONF_CALENDAR = "calendar"
 DEFAULT_CALENDAR = "calendar.birthdays"
+# While an event on this calendar is on, the dashboards wear the Peak Saver look.
+CONF_PEAK_CALENDAR = "peak_calendar"
+DEFAULT_PEAK_CALENDAR = "calendar.peak_saver"
 
 AUTO = "auto"
 BIRTHDAY_PREVIEW = "birthday"
+PEAK_SAVER_PREVIEW = "peak_saver"
 NO_BIRTHDAY = "none"

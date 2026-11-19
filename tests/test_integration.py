@@ -20,6 +20,7 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from custom_components.dungeon_season.const import ALIAS_THEME, DOMAIN
+from custom_components.dungeon_season.peak import DIMMER, PALETTE
 from custom_components.dungeon_season.seasons import FALL, named
 
 THEMES = """
@@ -304,3 +305,81 @@ async def test_a_missing_calendar_is_not_a_failure(
     await setup()
     assert hass.states.get("sensor.dungeon_birthday").state == "none"
     assert hass.states.get("sensor.dungeon_season").state == "fall"
+
+
+async def test_a_peak_saver_event_recolours_todays_look_and_puts_it_back(
+    hass: HomeAssistant, setup, freezer: FrozenDateTimeFactory
+) -> None:
+    freezer.move_to(at(2026, 11, 19, 16, 59))
+    hass.states.async_set("calendar.peak_saver", "off")
+    await setup()
+    assert hass.data[DATA_THEMES][ALIAS_THEME]["primary-color"] == "#fall"
+    assert hass.states.get("sensor.dungeon_season").attributes["peak_saver"] is False
+
+    # The calendar turns on at the event's start: no waiting for the hourly refresh.
+    freezer.move_to(at(2026, 11, 19, 17, 0, 1))
+    hass.states.async_set("calendar.peak_saver", "on")
+    await hass.async_block_till_done()
+    theme = hass.data[DATA_THEMES][ALIAS_THEME]
+    assert theme["primary-color"] == PALETTE["primary-color"]
+    assert theme["lovelace-background"].startswith(DIMMER)
+    assert "banner-fall-" in theme["dc-banner"]
+    assert hass.states.get("sensor.dungeon_season").attributes["peak_saver"] is True
+    assert hass.states.get("sensor.dungeon_season").state == "fall"
+
+    freezer.move_to(at(2026, 11, 19, 21, 0, 1))
+    hass.states.async_set("calendar.peak_saver", "off")
+    await hass.async_block_till_done()
+    assert hass.data[DATA_THEMES][ALIAS_THEME]["primary-color"] == "#fall"
+    assert hass.states.get("sensor.dungeon_season").attributes["peak_saver"] is False
+
+
+async def test_without_a_peak_saver_calendar_nothing_changes(
+    hass: HomeAssistant, setup, freezer: FrozenDateTimeFactory
+) -> None:
+    freezer.move_to(at(2026, 11, 19, 18))
+    await setup()
+    assert hass.data[DATA_THEMES][ALIAS_THEME]["primary-color"] == "#fall"
+    assert hass.states.get("sensor.dungeon_season").attributes["peak_saver"] is False
+
+
+async def test_a_solemn_day_keeps_its_look_during_peak_saver(
+    hass: HomeAssistant, setup, freezer: FrozenDateTimeFactory
+) -> None:
+    freezer.move_to(at(2026, 11, 11, 18))
+    hass.states.async_set("calendar.peak_saver", "on")
+    await setup()
+    assert hass.states.get("sensor.dungeon_season").state == "remembrance_day"
+    assert hass.states.get("sensor.dungeon_season").attributes["peak_saver"] is False
+    assert hass.data[DATA_THEMES][ALIAS_THEME].get("primary-color") != PALETTE["primary-color"]
+
+
+async def test_peak_saver_preview_shows_the_look_on_todays_season(
+    hass: HomeAssistant, setup, freezer: FrozenDateTimeFactory
+) -> None:
+    freezer.move_to(at(2026, 11, 3, 15))
+    await setup()
+    await hass.services.async_call(
+        "select",
+        "select_option",
+        {"entity_id": "select.dungeon_season_preview", "option": "peak_saver"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.dungeon_season").state == "fall"
+    assert hass.data[DATA_THEMES][ALIAS_THEME]["primary-color"] == PALETTE["primary-color"]
+    assert hass.states.get("sensor.dungeon_season").attributes["peak_saver"] is True
+
+
+async def test_the_options_keep_the_peak_saver_calendar(hass: HomeAssistant) -> None:
+    mock_component(hass, "frontend")
+    hass.data[DATA_THEMES] = {}
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"calendar": "calendar.birthdays", "peak_calendar": "calendar.hydro"},
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"]["peak_calendar"] == "calendar.hydro"

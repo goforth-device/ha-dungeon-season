@@ -6,9 +6,10 @@
     "step": {
       "user": {
         "title": "Dungeon Season",
-        "description": "Pick the calendar that holds birthdays. Title each all-day yearly event with a name and birth year, such as Sam 1990.",
+        "description": "Pick the calendar that holds birthdays. Title each all-day yearly event with a name and birth year, such as Sam 1990. While an event is on in the Peak Saver calendar, the dashboards wear the Peak Saver look.",
         "data": {
-          "calendar": "Birthday calendar"
+          "calendar": "Birthday calendar",
+          "peak_calendar": "Peak Saver calendar"
         }
       }
     }
@@ -18,7 +19,8 @@
       "init": {
         "title": "Dungeon Season",
         "data": {
-          "calendar": "Birthday calendar"
+          "calendar": "Birthday calendar",
+          "peak_calendar": "Peak Saver calendar"
         }
       }
     }
