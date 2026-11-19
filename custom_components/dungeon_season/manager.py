@@ -26,12 +26,16 @@ from .const import (
     BIRTHDAY_PREVIEW,
     BIRTHDAY_THEME,
     CONF_CALENDAR,
+    CONF_PEAK_CALENDAR,
     DEFAULT_CALENDAR,
+    DEFAULT_PEAK_CALENDAR,
     FALLBACK_THEME,
     IMAGES_URL,
+    PEAK_SAVER_PREVIEW,
     REMOTE_IMAGES,
     THEME_FILE,
 )
+from .peak import peak_saver_look
 from .seasons import (
     SEASONS,
     Person,
@@ -75,9 +79,10 @@ class SeasonManager:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Start on today's season until the first refresh."""
         self.hass = hass
-        self.calendar: str = {**entry.data, **entry.options}.get(
-            CONF_CALENDAR, DEFAULT_CALENDAR
-        )
+        settings = {**entry.data, **entry.options}
+        self.calendar: str = settings.get(CONF_CALENDAR, DEFAULT_CALENDAR)
+        self.peak_calendar: str = settings.get(CONF_PEAK_CALENDAR, DEFAULT_PEAK_CALENDAR)
+        self.peak_saver = False
         self.preview = AUTO
         self.season: Season = season_for(dt_util.now().date())
         self.people: list[Person] = []
@@ -95,11 +100,17 @@ class SeasonManager:
 
     @callback
     def async_start(self) -> Callable[[], None]:
-        """Refresh on the hour and when the birthday calendar changes."""
+        """Refresh on the hour and when the birthday or Peak Saver calendar changes.
+
+        A calendar's state turns on as its event starts and off as it ends, so
+        the Peak Saver look comes and goes on the minute, not on the hour.
+        """
         unsubscribe = [
             async_track_time_change(self.hass, self._async_tick, minute=0, second=5),
             async_track_state_change_event(
-                self.hass, [self.calendar], self._async_calendar_changed
+                self.hass,
+                [self.calendar, self.peak_calendar],
+                self._async_calendar_changed,
             ),
         ]
         if self.hass.state is not CoreState.running:
@@ -142,10 +153,16 @@ class SeasonManager:
         self.people = await self._async_birthdays(now)
         if self.preview == BIRTHDAY_PREVIEW:
             self.people = [Person("Preview", 42)]
-        elif self.preview != AUTO:
+        elif self.preview not in (AUTO, PEAK_SAVER_PREVIEW):
             self.season = named(SEASONS_BY_KEY[self.preview], today.year)
             self.people = []
         self.next_date, self.next_season = next_change(today)
+        # Solemn days keep their look: the dashboards' Peak Saver banner still shows.
+        self.peak_saver = self.preview == PEAK_SAVER_PREVIEW or (
+            self.preview == AUTO
+            and not self.season.solemn
+            and self._state(self.peak_calendar) == "on"
+        )
 
         if self.people:
             look = birthday_look([p.name for p in self.people], today, now.hour)
@@ -155,6 +172,11 @@ class SeasonManager:
         await self._async_apply_theme()
         for listener in self._listeners:
             listener()
+
+    def _state(self, entity_id: str) -> str | None:
+        """Return an entity's state, or None if it doesn't exist."""
+        state = self.hass.states.get(entity_id)
+        return state.state if state else None
 
     async def _async_birthdays(self, now: datetime) -> list[Person]:
         """Read today's birthdays from the calendar, which stays in Home Assistant."""
@@ -196,6 +218,8 @@ class SeasonManager:
             _LOGGER.warning("Theme %s is not installed", self.theme)
             return
         source = _local(source)
+        if self.peak_saver:
+            source = peak_saver_look(source)
         if themes.get(ALIAS_THEME) == source:
             return
         path = Path(self.hass.config.path(*THEME_FILE))

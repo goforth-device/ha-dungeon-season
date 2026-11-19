@@ -59,6 +59,7 @@ class SeasonSensor(_ManagerSensor):
             "title": manager.season.title,
             "solemn": manager.season.solemn,
             "theme": manager.theme,
+            "peak_saver": manager.peak_saver,
             "preview": manager.preview,
             "next_season": manager.next_season.key if manager.next_season else None,
             "next_date": manager.next_date.isoformat() if manager.next_date else None,

@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import DungeonSeasonConfigEntry
-from .const import AUTO, BIRTHDAY_PREVIEW, DOMAIN
+from .const import AUTO, BIRTHDAY_PREVIEW, DOMAIN, PEAK_SAVER_PREVIEW
 from .manager import SeasonManager
 from .seasons import SEASONS
 
@@ -28,7 +28,12 @@ class SeasonPreview(SelectEntity):
     _attr_unique_id = f"{DOMAIN}_preview"
     _attr_icon = "mdi:palette"
     _attr_should_poll = False
-    _attr_options = [AUTO, *(season.key for season in SEASONS), BIRTHDAY_PREVIEW]
+    _attr_options = [
+        AUTO,
+        *(season.key for season in SEASONS),
+        BIRTHDAY_PREVIEW,
+        PEAK_SAVER_PREVIEW,
+    ]
 
     def __init__(self, manager: SeasonManager) -> None:
         """Remember the manager."""
